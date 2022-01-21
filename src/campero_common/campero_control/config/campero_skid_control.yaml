@@ -1,0 +1,82 @@
+joint_blw_velocity_controller:
+  type: velocity_controllers/JointVelocityController
+  joint: campero_back_left_wheel_joint
+joint_brw_velocity_controller:
+  type: velocity_controllers/JointVelocityController
+  joint: campero_back_right_wheel_joint
+joint_frw_velocity_controller:
+  type: velocity_controllers/JointVelocityController
+  joint: campero_front_right_wheel_joint
+joint_flw_velocity_controller:
+  type: velocity_controllers/JointVelocityController
+  joint: campero_front_left_wheel_joint
+
+#joint_pan_position_controller:
+# type: position_controllers/JointPositionController
+# joint: joint_camera_pan
+#joint_tilt_position_controller:
+# type: position_controllers/JointPositionController
+# joint: joint_camera_tilt
+
+robotnik_base_control:
+  type: campero_controller/CamperoController
+  joint:
+    front_right_wheel_joint:
+      name: campero_front_right_wheel_joint
+      max_speed: 27.27 # rad/s
+    front_left_wheel_joint:
+      name: campero_front_left_wheel_joint
+      max_speed: 27.27 # rad/s
+    back_right_wheel_joint:
+      name: campero_back_right_wheel_joint
+      max_speed: 27.27 # rad/s
+    back_left_wheel_joint:
+      name: campero_back_left_wheel_joint
+      max_speed: 27.27 # rad/s
+  linear_speed_limit: 1.5 # m/s
+  linear_acceleration_limit: 3 # m/s^2
+  angular_speed_limit: 0.5 # rad/s
+  angular_acceleration_limit: 1 # rad/s^2
+  odom_frame: campero_odom
+  robot_base_frame: campero_base_footprint
+  odom_broadcast_tf: true
+  odom_topic: 'robotnik_base_control/odom'
+  wheel_base: 0.685
+  track_width: 0.52
+  wheel_diameter: 0.4064
+  cmd_watchdog_duration: 0.2
+  imu_watchdog_duration: 0.1
+  imu_topic: imu/data
+  odom_publish_frequency: 100
+  cmd_vel        : 'robotnik_base_control/cmd_vel'
+  kinematic_mode : 'skid'
+  motion_odometry: true
+  in_motion_timer: 2.0
+
+
+arm_controller:
+  type: position_controllers/JointTrajectoryController
+  joints:
+    - campero_ur10_shoulder_pan_joint
+    - campero_ur10_shoulder_lift_joint
+    - campero_ur10_elbow_joint
+    - campero_ur10_wrist_1_joint
+    - campero_ur10_wrist_2_joint
+    - campero_ur10_wrist_3_joint
+  constraints:
+    goal_time: 0.6
+    stopped_velocity_tolerance: 0.05
+    campero_ur10_shoulder_pan_joint: {trajectory: 0.1, goal: 0.1}
+    campero_ur10_shoulder_lift_joint: {trajectory: 0.1, goal: 0.1}
+    campero_ur10_elbow_joint: {trajectory: 0.1, goal: 0.1}
+    campero_ur10_wrist_1_joint: {trajectory: 0.1, goal: 0.1}
+    campero_ur10_wrist_2_joint: {trajectory: 0.1, goal: 0.1}
+    campero_ur10_wrist_3_joint: {trajectory: 0.1, goal: 0.1}
+  stop_trajectory_duration: 0.5
+  state_publish_rate: 25
+  action_monitor_rate: 10
+
+joint_read_state_controller:
+  type: joint_state_controller/JointStateController 
+  publish_rate: 100.0
+ 
