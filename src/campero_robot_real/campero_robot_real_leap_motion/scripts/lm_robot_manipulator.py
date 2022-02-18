@@ -22,7 +22,7 @@ class CmdTrajectory():
         self.send_gripper_cmd_pub = rospy.Publisher('/pub_gripper_control', JointTrajectory, queue_size=10)
         self.current_robot_pose = Pose()
         self.robot_pose_sub = rospy.Subscriber('/robot_pose', Pose, self.update_current_pose)
-        self.robot_pose_sub = rospy.Subscriber('/joint_states', JointState, self.update_current_joint_states)
+        self.joint_state_sub = rospy.Subscriber('/joint_states', JointState, self.update_current_joint_states)
         self.robot_pose_updated = False
         
         ## LEAP MOTION CONFIG
@@ -44,37 +44,47 @@ class CmdTrajectory():
         # Antes de comenzar, es bueno situar el robot en una posicion en donde trabajara
 
         print("========================== COMIENZO ========================")
-        print("= leap motion positions:")
+        print("== Leap Motion: hand position")
         print(frame.right_hand_palmpos)
-        print("= leap motion reference positions:")
+        print("== Leap Motion: hand reference positions")
         print(self.leap_motion_reference_position)
 
         # Obtiene la posicion de la palma de la mano
         palm_pos = frame.right_hand_palmpos
 
         if frame.right_hand_fist:
+            print("== Leap Motion -- Fist Gesture: Stop")
             self.start_leap_motion_control = False
 
         if frame.right_hand_thumb_up:
+            print("== Leap Motion -- Thumb Up Gesture: Start")
             self.start_leap_motion_control = True
 
         if self.start_leap_motion_control:
             # Configura la posicion de referencia en Leap Motion,
             # cada vez que reconozca el gesto de ROCK&ROLL
             if frame.right_hand_set_origin_frame_detected:
+                print("== Leap Motion -- Rock Gesture: Set hand reference positions")
                 self.set_leap_motion_reference_position = True
                 self.leap_motion_reference_position.x = palm_pos.x
                 self.leap_motion_reference_position.y = palm_pos.y
                 self.leap_motion_reference_position.z = palm_pos.z
+                print("== Leap Motion: Reference Values (xyz): "+ str(self.leap_motion_reference_position.x) + ", " + str(self.leap_motion_reference_position.y) + ", " + str(self.leap_motion_reference_position.z))
+                rospy.sleep(0.5)
 
             # Solamente si la referencia de lm esta configurada
             if self.set_leap_motion_reference_position:
     
                 if frame.right_hand_pinch:
-                    self.send_gripper_cmd(frame.right_hand_pinch_value)
+                    print("==== Leap Motion -- Gripper Gesture: Closing the gripper")
+                    #self.send_gripper_cmd(frame.right_hand_pinch_value)
+                    if frame.right_hand_pinch_value > 0.2:
+                        self.send_gripper_cmd(0.8)
+                    else:
+                        self.send_gripper_cmd(0.0)
                     #self.send_gripper_cmd(0.43)
-                else:
-                    self.send_gripper_cmd(0.0)
+                #else:
+                    #self.send_gripper_cmd(0.0)
     
                 ## Se obvia las rotaciones de momento
                 #r = frame.right_hand_rotate_value
@@ -85,23 +95,104 @@ class CmdTrajectory():
                 #print str(self.robot_reference.position.x)
                 #print str(palm_pos.x*0.001)
                 desired_pos = self.get_transformed_position(palm_pos)
-                print("= Leap motion: desired_pos (xyz): "+ str(desired_pos.x) + ", " + str(desired_pos.y) + ", " + str(desired_pos.z))
-                pos_x = self.robot_reference.position.x + (-1)*desired_pos.x * 0.001
-                pos_y = self.robot_reference.position.y + (-1)*desired_pos.z * 0.001
+                pos_x = self.robot_reference.position.x + desired_pos.x * 0.001
+                pos_y = self.robot_reference.position.y + desired_pos.z * 0.001
                 pos_z = self.robot_reference.position.z + desired_pos.y * 0.001
-
-
-                print("= Leap motion reducido: desired_pos (xyz) * 0.001: "+ str(desired_pos.x*0.001) + ", " + str(desired_pos.y*0.001) + ", " + str(desired_pos.z*0.001))
-                print("= Robot: robot_reference (xyz): "+ str(self.robot_reference.position.x) + ", " + str(self.robot_reference.position.y) + ", " + str(self.robot_reference.position.z))
-                print("= tf: current_pose (xyz): "+ str(self.current_robot_pose.position.x) + ", " + str(self.current_robot_pose.position.y) + ", " + str(self.current_robot_pose.position.z))            
-                #print pos_x
-                #print pos_y
-                #print pos_z
-                rpy = tf.quaternion_from_euler(pi, 0, 0)
-                #self.send_trajectory(palm_pos.x, palm_pos.y, palm_pos.z, rpy[0], rpy[1], rpy[2], rpy[3])
-                #self.send_trajectory(round(-1*pos_x, 3), round(-1*pos_y, 3), round(pos_z, 3), ()-0.499609514494, -0.500773235822, 0.499207219805, -0.500408484147)
-                self.send_trajectory(round(-1*pos_x, 3), round(-1*pos_y, 3), round(pos_z, 3), rpy[0], rpy[1], rpy[2], rpy[3])
+                if pos_x != 0.0 or pos_y != 0.0 or pos_z != 0.0:
+                    print("==== UR10 -- tf: UR10 current pose positions (xyz): "+ str(self.current_robot_pose.position.x) + ", " + str(self.current_robot_pose.position.y) + ", " + str(self.current_robot_pose.position.z))
+                    print("==== UR10: reference positions (xyz): "+ str(self.robot_reference.position.x) + ", " + str(self.robot_reference.position.y) + ", " + str(self.robot_reference.position.z))
+                    print("==== Leap motion: positions taking reference as origin (xyz): "+ str(desired_pos.x) + ", " + str(desired_pos.y) + ", " + str(desired_pos.z))
+                    print("==== Leap motion: positions taking reference as origin (xyz) * 0.001: "+ str(desired_pos.x*0.001) + ", " + str(desired_pos.y*0.001) + ", " + str(desired_pos.z*0.001))
+                    print("==== UR10 -- arm: desire cartesian [end effector] position (xyz): "+ str(pos_x) + ", " + str(pos_y) + ", " + str(pos_z))            
+                    rpy = tf.quaternion_from_euler(pi, 0, 0)
+                    #print rpy
+                    #self.send_trajectory(palm_pos.x, palm_pos.y, palm_pos.z, rpy[0], rpy[1], rpy[2], rpy[3])
+                    #self.send_trajectory(round(-1*pos_x, 3), round(-1*pos_y, 3), round(pos_z, 3), ()-0.499609514494, -0.500773235822, 0.499207219805, -0.500408484147)
+                    self.send_trajectory(round(-1*pos_x, 3), round(-1*pos_y, 3), round(pos_z, 3), rpy[0], rpy[1], rpy[2], rpy[3])
+                
         print("========================== FIN ========================\n")
+
+    def send_trajectory(self, pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, rot_w):
+        position = JointTrajectory()
+        position.header.stamp=rospy.Time.now()
+        position.header.frame_id = "/campero_ur10_base_link"    
+        position.joint_names = ['campero_ur10_shoulder_pan_joint','campero_ur10_shoulder_lift_joint','campero_ur10_elbow_joint',
+                          'campero_ur10_wrist_1_joint','campero_ur10_wrist_2_joint','campero_ur10_wrist_3_joint']
+        
+        rate = rospy.Rate(10)
+        while not self.robot_pose_updated:
+            rate.sleep()
+
+#        (roll, pitch, yaw) = tf.euler_from_quaternion([
+#                                            self.current_robot_pose.orientation.x,
+#                                            self.current_robot_pose.orientation.y,
+#                                            self.current_robot_pose.orientation.z,
+#                                            self.current_robot_pose.orientation.w])
+#
+#        rcs = [ self.current_robot_pose.position.x,
+#                self.current_robot_pose.position.y,
+#                self.current_robot_pose.position.z,
+#                roll, pitch, yaw]
+        rcs = self.current_joint_states
+        print("\033[91m====== UR10 -- RCS: list of reference pose [joint values]: ["+ str(rcs[0]) + ", " + str(rcs[1]) + ", " + str(rcs[2]) + ", " + str(rcs[3]) + ", " + str(rcs[4]) + ", " + str(rcs[5]) + "]\033[0m")
+
+        ps = Pose()
+        ps.position.x = pos_x
+        ps.position.y = pos_y
+        ps.position.z = pos_z
+        ps.orientation.x = rot_x
+        ps.orientation.y = rot_y
+        ps.orientation.z = rot_z
+        ps.orientation.w = rot_w
+    
+        #state = []
+    
+        #sol = inv_kin(ps, array_pos)0.0530511263012886  0.052499477863311765 0.051719752252101896
+        #print(sol)
+
+        
+        points = JointTrajectoryPoint()
+        try:            
+            ik_values = inv_kin(ps, rcs)
+            print("\033[91m====== UR10 -- IK: list of the new pose [joint values]: ["+ str(ik_values[0]) + ", " + str(ik_values[1]) + ", " + str(ik_values[2]) + ", " + str(ik_values[3]) + ", " + str(ik_values[4]) + ", " + str(ik_values[5]) + "]\033[0m")
+            points.positions = [ik_values[0],ik_values[1],ik_values[2],ik_values[3],ik_values[4], ik_values[5]]
+
+            distancia = max([abs(ik_values[0]-rcs[0]), abs(ik_values[1] - rcs[1]), abs(ik_values[2]-rcs[2]), abs(ik_values[3] - rcs[3]), abs(ik_values[4] - rcs[4]), abs(ik_values[5] - rcs[5])])
+            velocidad = 0.05
+            duration = distancia / velocidad
+
+            print('\033[93m====== Trayectory Values ======\033[0m')
+            
+            print('\033[93m=== duracion: ' + str(duration) + ']\033[0m')
+            print('\033[93m=== distancia_max: ' + str(distancia) + ']\033[0m')
+            print('\033[93m=== velocidad: ' + str(velocidad) + ']\033[0m')
+            print('\033[92m===== Diferencia de joints values\033[0m')
+            print('\033[92m=== shoulder_pan_joint: ' + str(rcs[0] - ik_values[0]) + ']\033[0m')
+            print('\033[92m=== shoulder_lift_joint: ' + str(rcs[1] - ik_values[1]) + ']\033[0m')
+            print('\033[92m=== elbow_joint: ' + str(rcs[2] - ik_values[2]) + ']\033[0m')
+            print('\033[92m=== wrist_1_joint: ' + str(rcs[3] - ik_values[3]) + ']\033[0m')
+            print('\033[92m=== wrist_2_joint: ' + str(rcs[4] - ik_values[4]) + ']\033[0m')
+            print('\033[92m=== wrist_3_joint: ' + str(rcs[5] - ik_values[5]) + ']\033[0m')
+            print('\033[91m===== Joints values deseados\033[0m')
+            print('\033[91m=== shoulder_pan_joint: ' + str(points.positions[0]) + ']\033[0m')
+            print('\033[91m=== shoulder_lift_joint: ' + str(points.positions[1]) + ']\033[0m')
+            print('\033[91m=== elbow_joint: ' + str(points.positions[2]) + ']\033[0m')
+            print('\033[91m=== wrist_1_joint: ' + str(points.positions[3]) + ']\033[0m')
+            print('\033[91m=== wrist_2_joint: ' + str(points.positions[4]) + ']\033[0m')
+            print('\033[91m=== wrist_3_joint: ' + str(points.positions[5]) + ']\033[0m')
+
+            #points.time_from_start = rospy.Duration.from_sec(1)
+            points.time_from_start = rospy.Duration.from_sec(duration)
+            position.points.append(points)
+            self.send_trajectory_pub.publish(position)
+            #state = sol
+            #rospy.sleep(10)
+            self.robot_pose_updated = False
+            print('\033[93m[ Enviada Trayectoria ]\033[0m')
+            print('\033[93m[' + str(ps.position.x) + ', ' + str(ps.position.y) + ', ' + str(ps.position.z) + ']\033[0m')
+
+        except Exception:
+            print('\033[91m[ Singularidad, valores:' + str(ps.position.x) + ', ' + str(ps.position.y) + ', ' + str(ps.position.z) + ']\033[0m')
 
     def get_transformed_position(self, palm_pos):
         
@@ -132,6 +223,7 @@ class CmdTrajectory():
             desired_pos.z = 0
 
         return desired_pos
+
     def send_gripper_cmd(self, gripper_distance):
         gripper = JointTrajectory()
         gripper.header.stamp=rospy.Time.now()
@@ -142,92 +234,9 @@ class CmdTrajectory():
         points.positions = [gripper_distance]
         points.time_from_start = rospy.Duration.from_sec(0.4)
         gripper.points.append(points)
+        #print gripper
         self.send_gripper_cmd_pub.publish(gripper)
         print('\033[93m[' + str(gripper_distance) + ']\033[0m')
-
-    def pick_place(self):
-        # Obtener el primer cubo
-        self.send_trajectory(0.29, 0.632, 0.62, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(0.29, 0.775, 0.62, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(0.29, 0.775, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(0.29, 0.775, 0.08, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-    
-        # Primer cubo
-        self.send_gripper_cmd(0.43)
-        rospy.sleep(4)
-    
-        # Enviar el cubo a la caja
-        self.send_trajectory(0.28, 0.775, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(-0.70, 0.775, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(-0.70, 0.6, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(10)
-        self.send_gripper_cmd(0.0)
-        rospy.sleep(4)
-    
-        # Obtener el segundo cubo
-        self.send_trajectory(0.29, 0.632, 0.62, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(0.9, 0.632, 0.62, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(4)
-        self.send_trajectory(0.9, 0.632, 0.2, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(0.9, 0.5, 0.2, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(3)
-        self.send_trajectory(0.9, 0.5, 0.08, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(5)
-    
-        # Segundo cubo
-        self.send_gripper_cmd(0.43)
-        rospy.sleep(4)
-    
-        # Enviar el cubo a la caja
-        self.send_trajectory(0.28, 0.775, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(-0.70, 0.775, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(-0.70, 0.6, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(10)
-        self.send_gripper_cmd(0.0)
-        rospy.sleep(4)
-    
-        # Obtener el tercer cubo
-        self.send_trajectory(0.29, 0.632, 0.62, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(0.675, 0.632, 0.62, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(4)
-        self.send_trajectory(0.675, 0.632, 0.2, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(0.675, 0.88, 0.2, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(3)
-        self.send_trajectory(0.675, 0.88, 0.1, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(3)
-        self.send_trajectory(0.675, 0.88, 0.08, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(5)
-    
-        # Tercer cubo
-        self.send_gripper_cmd(0.43)
-        rospy.sleep(4)
-    
-        # Enviar el cubo a la caja
-        self.send_trajectory(0.28, 0.775, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(-0.70, 0.775, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(2)
-        self.send_trajectory(-0.70, 0.6, 0.15, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(10)
-        self.send_gripper_cmd(0.0)
-        rospy.sleep(4)
-
-        # Posicion inicial del brazo
-        cmd.send_gripper_cmd(0.0)
-        cmd.send_trajectory(-0.24, 0.632, 0.62, -0.68945825, -0.72424496, 0.00781949, 0.00744391)
-        rospy.sleep(7)
 
     def set_robot_reference(self):
         ## Puede que se anyada las orientaciones... primero posiciones
@@ -265,14 +274,29 @@ class CmdTrajectory():
         #print("= Mensaje publicado:")
         #print(joint_state_msg)
         
-        shoulder_pan_joint = joint_state_msg.position[9]
-        shoulder_lift_joint  = joint_state_msg.position[8]
-        elbow_joint  = joint_state_msg.position[7]
-        wrist_1_joint  = joint_state_msg.position[10]
-        wrist_2_joint  = joint_state_msg.position[11]
-        wrist_3_joint  = joint_state_msg.position[12]
+        # Para el campero
+        shoulder_pan_joint = joint_state_msg.position[2]
+        shoulder_lift_joint  = joint_state_msg.position[1]
+        elbow_joint  = joint_state_msg.position[0]
+        wrist_1_joint  = joint_state_msg.position[3]
+        wrist_2_joint  = joint_state_msg.position[4]
+        wrist_3_joint  = joint_state_msg.position[5]
+
+        # Para Gazebo
+        #[0, 1, 2, 3, 4, 5, 6, campero_ur10_elbow_joint, campero_ur10_shoulder_lift_joint,
+        #campero_ur10_shoulder_pan_joint, campero_ur10_wrist_1_joint, campero_ur10_wrist_2_joint,
+        #campero_ur10_wrist_3_joint]
+        #shoulder_pan_joint = joint_state_msg.position[9]
+        #shoulder_lift_joint  = joint_state_msg.position[8]
+        #elbow_joint  = joint_state_msg.position[7]
+        #wrist_1_joint  = joint_state_msg.position[10]
+        #wrist_2_joint  = joint_state_msg.position[11]
+        #wrist_3_joint  = joint_state_msg.position[12]
+
 
         self.current_joint_states = [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+        #print("== Current joint states to compare to ==")
+        #print(self.current_joint_states)
         rospy.sleep(0.01)
         #print(self.current_joint_states)
         #print("========== fin de update current_robot_pose ============")
@@ -293,71 +317,7 @@ class CmdTrajectory():
         position.points.append(points)
         self.send_trajectory_pub.publish(position)
 
-    def send_trajectory(self, pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, rot_w):
-        position = JointTrajectory()
-        position.header.stamp=rospy.Time.now()
-        position.header.frame_id = "/campero_ur10_base_link"    
-        position.joint_names = ['campero_ur10_shoulder_pan_joint','campero_ur10_shoulder_lift_joint','campero_ur10_elbow_joint',
-                          'campero_ur10_wrist_1_joint','campero_ur10_wrist_2_joint','campero_ur10_wrist_3_joint']
-        
-        rate = rospy.Rate(10)
-        while not self.robot_pose_updated:
-            rate.sleep()
 
-        #print self.current_robot_pose
-
-#        (roll, pitch, yaw) = tf.euler_from_quaternion([
-#                                            self.current_robot_pose.orientation.x,
-#                                            self.current_robot_pose.orientation.y,
-#                                            self.current_robot_pose.orientation.z,
-#                                            self.current_robot_pose.orientation.w])
-#
-#        rcs = [ self.current_robot_pose.position.x,
-#                self.current_robot_pose.position.y,
-#                self.current_robot_pose.position.z,
-#                roll, pitch, yaw]
-        rcs = self.current_joint_states
-        #print("=====")
-        #print rcs
-        #print self.current_joint_states
-        #print("======")
-        #print rcs
-        #array_pos = fwd_kin(self.current_robot_pose, 'r', 'n')
-        #print(cartesian_pos)
-
-        ps = Pose()
-        ps.position.x = pos_x
-        ps.position.y = pos_y
-        ps.position.z = pos_z
-        ps.orientation.x = rot_x
-        ps.orientation.y = rot_y
-        ps.orientation.z = rot_z
-        ps.orientation.w = rot_w
-    
-        #state = []
-    
-        #sol = inv_kin(ps, array_pos)
-        #print(sol)
-
-        
-        points = JointTrajectoryPoint()
-        try:
-            points.positions = inv_kin(ps, rcs)
-            duration = max([abs(points.positions[0])-abs(rcs[0]), abs(points.positions[1])-abs(rcs[1]), abs(points.positions[2])-abs(rcs[2])])
-            print duration
-
-            points.time_from_start = rospy.Duration.from_sec(duration*0.1)
-            position.points.append(points)
-            self.send_trajectory_pub.publish(position)
-            #state = sol
-            #rospy.sleep(0.1)
-            self.robot_pose_updated = False
-            print points.positions
-            print('\033[93m[ Envia Trayectoria ]\033[0m')
-            print('\033[93m[' + str(ps.position.x) + ', ' + str(ps.position.y) + ', ' + str(ps.position.z) + ']\033[0m')
-
-        except Exception:
-            print('\033[91m[ Singularidad, valores:' + str(ps.position.x) + ', ' + str(ps.position.y) + ', ' + str(ps.position.z) + ']\033[0m')
         
         
 if __name__ == '__main__':

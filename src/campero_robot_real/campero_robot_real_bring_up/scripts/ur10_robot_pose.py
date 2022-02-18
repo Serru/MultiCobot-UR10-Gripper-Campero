@@ -1,6 +1,6 @@
 #!/usr/bin/env python  
 import roslib
-roslib.load_manifest('campero_robot_real_gazebo')
+roslib.load_manifest('campero_robot_real_bring_up')
 import rospy, sys
 import math
 import tf
@@ -17,7 +17,7 @@ class RobotPose():
     def __init__(self):
         self.namespace               = ""
         self.namenode               = "ur10_robot_pose"
-        self.robot_pose_pub = rospy.Publisher(self.namespace + '/robot_pose', Pose, queue_size=10)
+        self.robot_pose_pub = rospy.Publisher(self.namespace + '/robot_pose', Pose, queue_size=5)
 
     def parseUserInputs(self):
         # get goal from commandline

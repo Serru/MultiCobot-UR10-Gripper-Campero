@@ -40,7 +40,7 @@
   </include>
 
   <!-- Spawn the model loaded earlier in the simulation just started -->
-  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model"
+  <!--node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model"
     args="
       -urdf
       -param $(arg robot_description_param_name)
@@ -54,7 +54,7 @@
       -J campero_ur10_wrist_3_joint 0.0
 
       "
-    output="screen" respawn="false" />
+    output="screen" respawn="false" /-->
 
     <!--node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model"
     args="
@@ -72,7 +72,7 @@
       "
     output="screen" respawn="false" /-->
 
-  <!--node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model"
+  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model"
     args="
       -urdf
       -param $(arg robot_description_param_name)
@@ -86,7 +86,7 @@
       -J campero_ur10_wrist_3_joint 0.0
 
       "
-    output="screen" respawn="false" /-->
+    output="screen" respawn="false" />
 
   <!--node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model"
     args="

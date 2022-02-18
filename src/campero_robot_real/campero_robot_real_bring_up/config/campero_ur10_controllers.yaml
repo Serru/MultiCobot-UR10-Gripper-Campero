@@ -64,6 +64,18 @@ pos_joint_traj_controller:
    state_publish_rate: *loop_hz
    action_monitor_rate: 20
 
+#gripper:
+#  type: position_controllers/JointTrajectoryController
+#  joints:
+#     - campero_robotiq_85_left_knuckle_joint
+#  constraints:
+#      goal_time: 0.6
+#      stopped_velocity_tolerance: 0.05
+#      campero_robotiq_85_left_knuckle_joint: {trajectory: 0.1, goal: 0.1}
+#  stop_trajectory_duration: 0.5
+#  state_publish_rate: *loop_hz
+#  action_monitor_rate: 10
+
 scaled_vel_joint_traj_controller:
    type: velocity_controllers/ScaledJointTrajectoryController
    joints: *robot_joints
@@ -132,6 +144,10 @@ vel_joint_traj_controller:
 joint_group_vel_controller:
    type: velocity_controllers/JointGroupVelocityController
    joints: *robot_joints
+
+joint_group_pos_controller:
+  type: position_controllers/JointGroupPositionController
+  joints: *robot_joints
 
 robot_status_controller:
    type: industrial_robot_status_controller/IndustrialRobotStatusController

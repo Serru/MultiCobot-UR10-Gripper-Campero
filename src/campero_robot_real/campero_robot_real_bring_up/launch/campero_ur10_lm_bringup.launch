@@ -16,7 +16,7 @@
     <!-- Los siguientes parametros estan por defecto como en el ur10_bringup.launch -->
     <arg name="transmission_hw_interface" default="hardware_interface/PositionJointInterface"/>
     
-    <arg name="controllers" default="joint_state_controller pos_joint_traj_controller gripper" doc="Controllers that are activated by default."/>
+    <arg name="controllers" default="joint_state_controller pos_joint_traj_controller robot_status_controller" doc="Controllers that are activated by default."/>
 
     <arg name="reverse_port" default="50001" doc="Port that will be opened by the driver to allow direct communication between the driver and the robot controller."/>
     
@@ -25,6 +25,20 @@
     <arg name="tf_prefix" default="" doc="tf_prefix used for the robot."/>
 
     <arg name="stopped_controllers" default="joint_group_pos_controller" doc="Controllers that are initally loaded, but not started."/>
+    
+	
+	<!-- start gripper node -->
+    <arg name="robot_id" default="campero"/>
+	<arg name="launch_fake_joints" default="false"/>
+	<arg name="port" default="/dev/ttyUSB_GRIPPER"/>
+	<arg name="gripper_name" default="robotiq_2f_gripper" />
+	<arg name="min_gap" default="0" />
+	<arg name="max_gap" default="0.085" /> <!-- meters -->
+	<arg name="min_effort" default="30.0" />
+	<arg name="max_effort" default="100.0" />
+
+ 
+    
 
     <!-- Esto solo sirve si use_tool_communication=true
     <arg name="tool_voltage" default="0" doc="Tool voltage set at the beginning of the UR program. Only used, when `use_tool_communication` is set to true."/>
@@ -54,6 +68,12 @@
 
     <!-- send the gripper commands [Own Script]-->
     <node name="cmd_gripper_value_pub" pkg="campero_robot_real_bring_up" type="pub_gripper_cmd.py" respawn="true" />
+    
+    <!--node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" /-->
+    
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find ur_description)/cfg/view_robot.rviz" required="true" />
+  
+    <!--node name="rviz" pkg="rviz" type="rviz" required="true" /-->
 
     <!-- Cargar driver --> 
     <include file="$(find ur_robot_driver)/launch/ur_control.launch">
@@ -80,4 +100,33 @@
         <arg name="tool_tcp_port" value="$(arg tool_tcp_port)"/>
         -->
     </include>
+    
+    <!-- -->
+    <node name="$(arg gripper_name)" pkg="robotiq_2f_gripper_control" type="Robotiq2FGripperRtuNode.py" args="$(arg port)" respawn="true" respawn_delay="10" output="screen">
+        <remap from="Robotiq2FGripperRobotInput" to="$(arg gripper_name)/input"/>
+        <remap from="Robotiq2FGripperRobotOutput" to="$(arg gripper_name)/output"/>
+    </node>
+    
+    <node name="$(arg gripper_name)_action_server" pkg="robotiq_2f_gripper_action_server" type="robotiq_2f_gripper_action_server_node" respawn="true" respawn_delay="10" output="screen">
+	<param name="gripper_name" type="str" value="$(arg gripper_name)" />
+	<param name="min_gap" type="double" value="$(arg min_gap)" />
+	<param name="max_gap" type="double" value="$(arg max_gap)" />
+	<param name="min_effort" type="double" value="$(arg min_effort)" />
+	<param name="max_effort" type="double" value="$(arg max_effort)" />
+
+	<remap from="input" to="$(arg gripper_name)/input" />
+	<remap from="output" to="$(arg gripper_name)/output" />
+    </node>
+    
+    <!-- Necessary to simulate fake position used in moveit when the gripper is connected to the arm-->
+    <node if="$(arg launch_fake_joints)" name="fake_joint_publisher" pkg="campero_description" type="fake_joint_publisher.py" output="screen">
+      <rosparam command="load" file="$(find campero_bringup)/config/2f_gripper_fake_joints.yaml"/>
+    </node>
+    
+	<!--group ns="$(arg robot_id)"-->
+		<!-- -->
+		<node name="$(arg gripper_name)_controller" pkg="robotiq_2f_gripper_control" type="Robotiq2FGripperSimpleController.py" output="screen">
+			<remap from="Robotiq2FGripperRobotOutput" to="$(arg gripper_name)/output"/>
+		</node>
+	<!--/group-->
 </launch>

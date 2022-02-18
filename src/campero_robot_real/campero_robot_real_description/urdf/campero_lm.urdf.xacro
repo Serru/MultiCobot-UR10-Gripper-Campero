@@ -22,7 +22,7 @@
 	<xacro:property name="PI" value="3.1415926535897931"/>
 	
 	<!-- Include gripper description -->
-	<xacro:include filename="$(find campero_description)/urdf/robotiq_c2/robotiq_85_gripper.urdf.xacro" />
+    <xacro:include filename="$(find campero_description)/urdf/robotiq_c2/robotiq_85_gripper.urdf.xacro" />
 	
 	<!-- Include force sensor description -->
 	<xacro:include filename="$(find campero_description)/urdf/robotiq_force_torque_sensor/robotiq_fts300.urdf.xacro" />
@@ -149,24 +149,6 @@
 				<origin xyz="${gps_offset_x} ${gps_offset_y} ${gps_offset_z}"/>
 		</xacro:sensor_gps-->
 
-		<!--Unimos el brazo con la base del campero-->
-		<joint name="$(arg prefix)ur10_arm_base_joint" type="fixed">
-		  <origin xyz="0.215 0 0.5885" rpy="0 0 3.14"/>
-		  <parent link="$(arg prefix)base_link" />
-		  <child link="$(arg prefix)ur10_base_link" />
-		</joint>
-
-		<!-- ROBOTIQ SENSOR -->
-		<xacro:robotiq_fts300 prefix="$(arg prefix)sensor_" parent="$(arg prefix)ur10_ee_link">
-			<origin xyz="0 0 0" rpy="0 -1.57 ${pi}"/>
-		</xacro:robotiq_fts300>
-		
-	
-		<!-- ROBOTIQ 85 GRIPPER -->
-		<xacro:robotiq_85_gripper prefix="$(arg prefix)" parent="$(arg prefix)sensor_fts_toolside">
-			<origin xyz="0 0.0 0" rpy="0 -1.57 0"/>
-		</xacro:robotiq_85_gripper>
-
 		<!-- UR-10 ARM -->
 		<xacro:arg name="kinematics_config" default="$(find campero_robot_real_bring_up)/config/campero_ur10_calibration.yaml"/>
 		<xacro:ur10_robot prefix="$(arg prefix)ur10_" joint_limited="true"
@@ -178,7 +160,23 @@
     		wrist_3_lower_limit="${-PI}" wrist_3_upper_limit="${PI}"
 			kinematics_file="${load_yaml('$(arg kinematics_config)')}">
 		</xacro:ur10_robot>
-
+		
+		<!--Unimos el brazo con la base del campero-->
+		<joint name="$(arg prefix)ur10_arm_base_joint" type="fixed">
+		  <origin xyz="0.215 0 0.5885" rpy="0 0 3.14"/>
+		  <parent link="$(arg prefix)base_link" />
+		  <child link="$(arg prefix)ur10_base_link" />
+		</joint>
+		
+		<!-- ROBOTIQ SENSOR -->
+		<xacro:robotiq_fts300 prefix="$(arg prefix)sensor_" parent="$(arg prefix)ur10_ee_link">
+			<origin xyz="0 0 0" rpy="0 -1.57 ${pi}"/>
+		</xacro:robotiq_fts300>
+		
+		<!-- ROBOTIQ 85 GRIPPER -->
+		<xacro:robotiq_85_gripper prefix="$(arg prefix)" parent="$(arg prefix)sensor_fts_toolside">
+			<origin xyz="0 0.0 0" rpy="0 -1.57 0"/>
+		</xacro:robotiq_85_gripper>
 	
    </xacro:macro>
    

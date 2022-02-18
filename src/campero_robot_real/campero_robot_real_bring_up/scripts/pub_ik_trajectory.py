@@ -2,7 +2,7 @@
 import rospy
 from trajectory_msgs.msg import JointTrajectory
 import roslib
-roslib.load_manifest('campero_robot_real_gazebo')
+roslib.load_manifest('campero_robot_real_bring_up')
 import sys
 
 def usage():
@@ -17,7 +17,7 @@ class PubIkTrajectory():
         self.ik_trajectory = JointTrajectory()
         self.namespace               = ""
         self.namenode               = "pub_ik_trajectory"
-        self.cmd_pose_pub = rospy.Publisher(self.namespace + '/pos_joint_traj_controller/command', JointTrajectory, queue_size=10)
+        self.cmd_pose_pub = rospy.Publisher(self.namespace + '/pos_joint_traj_controller/command', JointTrajectory, queue_size=5)
         self.trajectory_sub =         rospy.Subscriber(self.namespace + '/pub_ik_trajectory', JointTrajectory, self.update_trajectory)
 
     def parseUserInputs(self):
