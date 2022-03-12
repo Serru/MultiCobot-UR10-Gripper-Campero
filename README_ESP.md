@@ -30,7 +30,7 @@ También está incorporado al sistema el dispositivo Leap Motion que es capaz de
 
 ### Configuración en el robot físico
 
-![image](https://github.com/Serru/MultiCobot-UR10-Gripper/blob/main/doc/imgs_md/diseño-general-campero.png)
+![image](https://raw.githubusercontent.com/Serru/MultiCobot-UR10-Gripper/main/doc/imgs_md/dise%C3%B1o-general-campero.png)
 
 Dado que la configuración interna del sistema de robot Campero puede ser distinta dependiendo de la entidad que haya realizado la configuración de este. No se entrará a detallar cómo se ha realizado la configuración del sistema, pero sí se deja ha dejado el código como referencia sobre el cual uno puede modificar o tomar ideas del código implementado.
 
