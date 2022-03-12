@@ -29,7 +29,7 @@ The Leap Motion device is also integrated into the system. It is capable of dete
 
 ### Configuration on the physical robot
 
-![Image](https://github.com/Serru/MultiCobot-UR10-Gripper/blob/main/doc/imgs_md/design-general-campero.png)
+![image](https://github.com/Serru/MultiCobot-UR10-Gripper/blob/main/doc/imgs_md/diseño-general-campero.png)
 
 Since the internal configuration of the Campero robot system may vary depending on the company that configured it. We will not go into detail on how the system configuration was done. The code serves as a reference that you can modify or take from the implemented code.
 
